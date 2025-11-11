@@ -1,0 +1,6 @@
+# Static assets
+/assets/*  /assets/:splat  200
+/favicon.ico  /favicon.ico  200
+
+# SPA fallback
+/*    /index.html   200
