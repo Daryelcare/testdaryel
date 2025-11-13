@@ -97,6 +97,7 @@ export function EmployeesContent() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [batchDeleteDialogOpen, setBatchDeleteDialogOpen] = useState(false);
+  const [bulkResetPasswordDialogOpen, setBulkResetPasswordDialogOpen] = useState(false);
   const [importData, setImportData] = useState<ImportEmployee[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -465,6 +466,83 @@ export function EmployeesContent() {
     });
     setEditMode(false);
     setViewDialogOpen(true);
+  };
+
+  const handleSelectedPasswordReset = async () => {
+    try {
+      setImporting(true);
+      setBulkResetPasswordDialogOpen(false);
+      
+      // Get employee details for selected IDs
+      const { data: employeesToReset, error: fetchError } = await supabase
+        .from('employees')
+        .select('id, name, email')
+        .in('id', selectedEmployees);
+      
+      if (fetchError) throw fetchError;
+      
+      if (!employeesToReset || employeesToReset.length === 0) {
+        toast({
+          title: "No employees selected",
+          description: "Please select employees to reset passwords.",
+        });
+        setImporting(false);
+        return;
+      }
+
+      let successCount = 0;
+      let failedEmployees: Array<{ name: string; email: string | null }> = [];
+      
+      const resetPromises = employeesToReset.map(async (emp) => {
+        try {
+          const { error: resetError } = await supabase.functions.invoke('admin-reset-employee-password', {
+            body: { employeeId: emp.id }
+          });
+          
+          if (resetError) throw resetError;
+          successCount++;
+          
+          toast({
+            title: "Resetting passwords...",
+            description: `${successCount}/${employeesToReset.length} employees ready`,
+          });
+          
+          return { success: true };
+        } catch (resetError) {
+          console.error(`Error resetting password for employee ${emp.id}:`, resetError);
+          failedEmployees.push({ name: emp.name, email: emp.email });
+          return { success: false };
+        }
+      });
+      
+      await Promise.allSettled(resetPromises);
+      
+      if (failedEmployees.length === 0) {
+        toast({
+          title: "Passwords reset successfully",
+          description: `${successCount} employee${successCount > 1 ? 's' : ''} can now login with password: 123456`,
+        });
+      } else {
+        toast({
+          title: "Password reset completed",
+          description: `${successCount} successful. ${failedEmployees.length} failed: ${failedEmployees.map(e => e.name).join(', ')}`,
+          variant: failedEmployees.length > successCount ? "destructive" : "default",
+        });
+      }
+      
+      // Clear selection after successful reset
+      setSelectedEmployees([]);
+      refetchData();
+    } catch (error) {
+      console.error('Error in selected password reset:', error);
+      toast({
+        title: "Reset failed",
+        description: "Failed to reset passwords. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleBulkPasswordReset = async () => {
@@ -1196,6 +1274,17 @@ export function EmployeesContent() {
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete Selected ({selectedEmployees.length})
+            </Button>
+          )}
+          {selectedEmployees.length > 0 && canCreateEmployees() && (
+            <Button 
+              variant="outline"
+              onClick={() => setBulkResetPasswordDialogOpen(true)}
+              disabled={importing}
+              className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+            >
+              <Key className="w-4 h-4 mr-2" />
+              Reset Selected Passwords ({selectedEmployees.length})
             </Button>
           )}
           {canCreateEmployees() && (
@@ -2460,6 +2549,53 @@ export function EmployeesContent() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete {selectedEmployees.length} Employee(s)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Reset Password Confirmation Dialog */}
+      <AlertDialog open={bulkResetPasswordDialogOpen} onOpenChange={setBulkResetPasswordDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Selected Employees' Passwords</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset passwords for {selectedEmployees.length} selected employee{selectedEmployees.length > 1 ? 's' : ''} to the default "123456" and require them to change it on their next login.
+              <div className="mt-4 p-3 bg-muted rounded-md max-h-40 overflow-y-auto">
+                <p className="font-semibold text-sm mb-2">Selected employees:</p>
+                <ul className="text-sm space-y-1">
+                  {employees
+                    .filter(emp => selectedEmployees.includes(emp.id))
+                    .map(emp => (
+                      <li key={emp.id} className="flex items-center gap-2">
+                        <Check className="w-3 h-3 text-green-600" />
+                        {emp.name} {emp.email ? `(${emp.email})` : ''}
+                      </li>
+                    ))
+                  }
+                </ul>
+              </div>
+              <p className="mt-4 text-sm font-medium">Are you sure you want to continue?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleSelectedPasswordReset}
+              disabled={importing}
+              className="bg-gradient-primary hover:opacity-90"
+            >
+              {importing ? (
+                <>
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4 mr-2" />
+                  Reset {selectedEmployees.length} Password{selectedEmployees.length > 1 ? 's' : ''}
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
