@@ -179,6 +179,47 @@ export function useEmployeeActions() {
 
   const updateEmployee = useMutation({
     mutationFn: async ({ id, ...updateData }: Partial<Employee> & { id: string }) => {
+      // Check if email is being updated
+      if (updateData.email) {
+        const { data: currentEmployee } = await supabase
+          .from('employees')
+          .select('email')
+          .eq('id', id)
+          .single();
+
+        // If email is changing, call edge function to sync auth
+        if (currentEmployee && currentEmployee.email !== updateData.email) {
+          const { data: syncResult, error: syncError } = await supabase.functions.invoke(
+            'admin-update-employee-email',
+            {
+              body: {
+                employeeId: id,
+                newEmail: updateData.email
+              }
+            }
+          );
+
+          if (syncError || !syncResult?.success) {
+            throw new Error(syncResult?.error || syncError?.message || 'Failed to sync email');
+          }
+
+          // Email is already updated by the edge function, so remove it from updateData
+          const { email, ...restData } = updateData;
+          if (Object.keys(restData).length === 0) {
+            // If email was the only field, fetch and return the updated employee
+            const { data, error } = await supabase
+              .from('employees')
+              .select()
+              .eq('id', id)
+              .single();
+            
+            if (error) throw error;
+            return data;
+          }
+          updateData = restData;
+        }
+      }
+
       const { data, error } = await supabase
         .from('employees')
         .update(updateData)
