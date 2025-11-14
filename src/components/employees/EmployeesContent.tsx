@@ -1276,25 +1276,24 @@ export function EmployeesContent() {
               Delete Selected ({selectedEmployees.length})
             </Button>
           )}
-          {selectedEmployees.length > 0 && canCreateEmployees() && (
-            <Button 
-              variant="outline"
-              onClick={() => setBulkResetPasswordDialogOpen(true)}
-              disabled={importing}
-              className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
-            >
-              <Key className="w-4 h-4 mr-2" />
-              Reset Selected Passwords ({selectedEmployees.length})
-            </Button>
-          )}
           {canCreateEmployees() && (
             <Button 
               variant="outline"
-              onClick={handleBulkPasswordReset}
+              onClick={selectedEmployees.length > 0 
+                ? () => setBulkResetPasswordDialogOpen(true) 
+                : handleBulkPasswordReset
+              }
               disabled={importing}
+              className={selectedEmployees.length > 0 
+                ? "border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950" 
+                : ""
+              }
             >
               <Key className="w-4 h-4 mr-2" />
-              Reset All Passwords
+              {selectedEmployees.length > 0 
+                ? `Reset Selected Passwords (${selectedEmployees.length})`
+                : "Reset All Passwords"
+              }
             </Button>
           )}
           {canCreateEmployees() && (
