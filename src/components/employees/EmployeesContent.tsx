@@ -1,6 +1,6 @@
 
-import { useState, useRef } from "react";
-import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Key, CalendarIcon, Activity } from "lucide-react";
+import { useState, useRef, useMemo } from "react";
+import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Key, CalendarIcon, Activity, Languages } from "lucide-react";
 import { useLanguageOptions } from "@/hooks/queries/useLanguageQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { DatePicker } from "@/components/ui/date-picker";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { format } from "date-fns";
@@ -144,7 +145,75 @@ export function EmployeesContent() {
   });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [languageSearch, setLanguageSearch] = useState("");
+  const [isLanguagePopoverOpen, setIsLanguagePopoverOpen] = useState(false);
   const { toast } = useToast();
+
+  // Comprehensive list of common languages
+  const allPossibleLanguages = [
+    "Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Assamese", "Azerbaijani",
+    "Basque", "Belarusian", "Bengali", "Bosnian", "Bulgarian", "Burmese",
+    "Catalan", "Cebuano", "Chinese", "Corsican", "Croatian", "Czech",
+    "Danish", "Dutch",
+    "English", "Esperanto", "Estonian",
+    "Filipino", "Finnish", "French", "Frisian",
+    "Galician", "Georgian", "German", "Greek", "Gujarati",
+    "Haitian Creole", "Hausa", "Hawaiian", "Hebrew", "Hindi", "Hmong", "Hungarian",
+    "Icelandic", "Igbo", "Indonesian", "Irish", "Italian",
+    "Japanese", "Javanese",
+    "Kannada", "Kazakh", "Khmer", "Korean", "Kurdish", "Kyrgyz",
+    "Lao", "Latin", "Latvian", "Lithuanian", "Luxembourgish",
+    "Macedonian", "Malagasy", "Malay", "Malayalam", "Maltese", "Maori", "Marathi", "Mongolian",
+    "Nepali", "Norwegian",
+    "Pashto", "Persian", "Polish", "Portuguese", "Punjabi",
+    "Romanian", "Russian",
+    "Samoan", "Scots Gaelic", "Serbian", "Sesotho", "Shona", "Sindhi", "Sinhala", "Slovak", "Slovenian", "Somali", "Spanish", "Sundanese", "Swahili", "Swedish",
+    "Tagalog", "Tajik", "Tamil", "Telugu", "Thai", "Turkish",
+    "Ukrainian", "Urdu", "Uzbek",
+    "Vietnamese",
+    "Welsh",
+    "Xhosa",
+    "Yiddish", "Yoruba",
+    "Zulu"
+  ];
+
+  // Extract available languages from employees and language options
+  useMemo(() => {
+    const languagesSet = new Set<string>();
+    
+    // Add languages from employees
+    employees.forEach(emp => {
+      if (emp.languages && Array.isArray(emp.languages)) {
+        emp.languages.forEach(lang => {
+          if (lang && typeof lang === 'string') {
+            languagesSet.add(lang.trim());
+          }
+        });
+      }
+    });
+    
+    // Add configured language options
+    languageOptions.forEach((lang: any) => {
+      const langName = typeof lang === 'string' ? lang : (lang?.name || lang?.label);
+      if (langName) languagesSet.add(langName);
+    });
+    
+    setAvailableLanguages(Array.from(languagesSet).sort());
+  }, [employees, languageOptions]);
+
+  // Filter languages based on search - use all possible languages
+  const filteredLanguages = useMemo(() => {
+    if (!languageSearch) return [];
+    
+    // Combine employee languages with all possible languages
+    const allLanguages = new Set([...availableLanguages, ...allPossibleLanguages]);
+    
+    return Array.from(allLanguages)
+      .filter(lang => lang.toLowerCase().includes(languageSearch.toLowerCase()))
+      .sort();
+  }, [availableLanguages, languageSearch, allPossibleLanguages]);
 
   // Helper function to format last login timestamp
   const formatLastLogin = (lastLogin: string | null | undefined) => {
@@ -1167,6 +1236,14 @@ export function EmployeesContent() {
     
     const matchesBranch = branchFilter === 'all' || employee.branches?.name === branchFilter;
     
+    // Filter by language
+    const matchesLanguage = selectedLanguages.length === 0 || 
+      selectedLanguages.some(selectedLang => 
+        employee.languages?.some(empLang => 
+          empLang.toLowerCase().includes(selectedLang.toLowerCase())
+        )
+      );
+    
     // For non-admin users, filter by accessible branches
     const accessibleBranches = getAccessibleBranches();
     
@@ -1176,7 +1253,7 @@ export function EmployeesContent() {
       hasAccess = accessibleBranches.includes(employee.branch_id || '');
     }
     
-    return matchesSearch && matchesBranch && hasAccess;
+    return matchesSearch && matchesBranch && matchesLanguage && hasAccess;
   }).sort((a, b) => {
     let aVal: any;
     let bVal: any;
@@ -1328,6 +1405,84 @@ export function EmployeesContent() {
             className="pl-10 bg-card border-input-border"
           />
         </div>
+        <Popover open={isLanguagePopoverOpen} onOpenChange={(open) => {
+          setIsLanguagePopoverOpen(open);
+          if (!open) setLanguageSearch("");
+        }}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              className="w-full sm:w-auto sm:min-w-[200px] justify-between"
+              onClick={() => setIsLanguagePopoverOpen(true)}
+            >
+              <Languages className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {selectedLanguages.length > 0
+                  ? `${selectedLanguages.length} selected`
+                  : "Search languages..."}
+              </span>
+              <Search className="ml-2 h-4 w-4 opacity-50 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[250px] p-0 z-50" align="start">
+            <Command shouldFilter={false}>
+              <CommandInput 
+                placeholder="Type to search languages..." 
+                value={languageSearch}
+                onValueChange={setLanguageSearch}
+              />
+              <CommandList>
+                {languageSearch.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    Start typing to search languages...
+                  </div>
+                ) : filteredLanguages.length === 0 ? (
+                  <CommandEmpty>No languages found.</CommandEmpty>
+                ) : (
+                  <CommandGroup>
+                    {filteredLanguages.map((language) => {
+                      const isSelected = selectedLanguages.includes(language);
+                      const employeeCount = employees.filter(emp => 
+                        emp.languages?.some(lang => 
+                          lang.toLowerCase().includes(language.toLowerCase())
+                        )
+                      ).length;
+                      
+                      return (
+                        <CommandItem
+                          key={language}
+                          value={language}
+                          onSelect={() => {
+                            setPage(1);
+                            if (isSelected) {
+                              setSelectedLanguages(selectedLanguages.filter(l => l !== language));
+                            } else {
+                              setSelectedLanguages([...selectedLanguages, language]);
+                            }
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="flex-1">{language}</span>
+                          {employeeCount > 0 && (
+                            <Badge variant="secondary" className="ml-2">
+                              {employeeCount}
+                            </Badge>
+                          )}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                )}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         <Select value={branchFilter} onValueChange={(val) => {setBranchFilter(val); setPage(1);}}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by branch" />
@@ -1340,6 +1495,41 @@ export function EmployeesContent() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Selected Languages Display */}
+      {selectedLanguages.length > 0 && (
+        <div className="flex flex-wrap gap-2 items-center animate-slide-up">
+          <span className="text-sm text-muted-foreground">Filtering by:</span>
+          {selectedLanguages.map(lang => (
+            <Badge 
+              key={lang} 
+              variant="secondary" 
+              className="gap-1 pr-1 pl-2.5"
+            >
+              {lang}
+              <button
+                onClick={() => {
+                  setPage(1);
+                  setSelectedLanguages(prev => prev.filter(l => l !== lang));
+                }}
+                className="hover:bg-background/50 rounded-full p-0.5 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              setPage(1);
+              setSelectedLanguages([]);
+            }}
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-slide-up">
