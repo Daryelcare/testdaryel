@@ -21,23 +21,20 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<UserPreferences>({
     navigationStyle: "sidebar",
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false by default
 
   // Load preferences from localStorage on mount
   useEffect(() => {
     console.log('[UserPreferencesProvider] useEffect running');
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
         const parsed = JSON.parse(stored);
         console.log('[UserPreferencesProvider] Loaded preferences from storage:', parsed);
         setPreferences(parsed);
+      } catch (error) {
+        console.error("Error loading preferences:", error);
       }
-    } catch (error) {
-      console.error("Error loading preferences:", error);
-    } finally {
-      console.log('[UserPreferencesProvider] Setting loading to false');
-      setLoading(false);
     }
   }, []);
 
