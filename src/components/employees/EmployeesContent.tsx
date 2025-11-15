@@ -80,12 +80,25 @@ export type EmployeeSortField = 'name' | 'employee_code' | 'branch_name' | 'work
 export type EmployeeSortDirection = 'asc' | 'desc';
 
 export function EmployeesContent() {
-  const { employees, branches, loading, refetchData } = useEmployeeData();
+  console.log('[EmployeesContent] Rendering...');
+  
+  let hookData;
+  try {
+    hookData = useEmployeeData();
+    console.log('[EmployeesContent] useEmployeeData:', hookData);
+  } catch (error) {
+    console.error('[EmployeesContent] Error in useEmployeeData:', error);
+    return <div className="p-8 text-center text-destructive">Error loading employee data. Please refresh the page.</div>;
+  }
+  
+  const { employees, branches, loading, refetchData } = hookData;
   const { createEmployee: createEmployeeMutation, updateEmployee: updateEmployeeMutation, deleteEmployee: deleteEmployeeMutation } = useEmployeeActions();
   const { syncNow } = useActivitySync();
   const { data: languageOptions = [] } = useLanguageOptions();
   const { getAccessibleBranches, isAdmin } = usePermissions();
   const { canViewEmployees, canCreateEmployees, canEditEmployees, canDeleteEmployees } = usePagePermissions();
+  
+  console.log('[EmployeesContent] Hooks loaded successfully', { employeesCount: employees?.length, loading });
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
   const [sortField, setSortField] = useState<EmployeeSortField>('name');
@@ -1464,8 +1477,8 @@ export function EmployeesContent() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Branches</SelectItem>
-            {Array.from(new Set(employees.map(emp => emp.branches?.name).filter(Boolean))).map(branch => (
-              <SelectItem key={branch} value={branch!}>{branch}</SelectItem>
+            {Array.from(new Set(employees.map(emp => emp.branches?.name).filter(Boolean))).map((branch) => (
+              <SelectItem key={branch as string} value={branch as string}>{branch as string}</SelectItem>
             ))}
           </SelectContent>
         </Select>
