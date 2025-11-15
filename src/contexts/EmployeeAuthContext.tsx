@@ -67,7 +67,11 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      setEmployee(employeeData);
+      // Cast languages from Json to string[]
+      setEmployee({
+        ...employeeData,
+        languages: (employeeData.languages as string[]) || []
+      });
       return true;
     } catch (error) {
       console.error('Error in fetchEmployeeData:', error);
