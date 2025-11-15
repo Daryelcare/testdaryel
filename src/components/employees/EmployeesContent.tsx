@@ -2,6 +2,7 @@
 import { useState, useRef, useMemo } from "react";
 import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Key, CalendarIcon, Activity, Languages } from "lucide-react";
 import { useLanguageOptions } from "@/hooks/queries/useLanguageQueries";
+import { ALL_LANGUAGES } from "@/constants/languages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -152,32 +153,6 @@ export function EmployeesContent() {
   const { toast } = useToast();
 
   // Comprehensive list of common languages
-  const allPossibleLanguages = [
-    "Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Assamese", "Azerbaijani",
-    "Basque", "Belarusian", "Bengali", "Bosnian", "Bulgarian", "Burmese",
-    "Catalan", "Cebuano", "Chinese", "Corsican", "Croatian", "Czech",
-    "Danish", "Dutch",
-    "English", "Esperanto", "Estonian",
-    "Filipino", "Finnish", "French", "Frisian",
-    "Galician", "Georgian", "German", "Greek", "Gujarati",
-    "Haitian Creole", "Hausa", "Hawaiian", "Hebrew", "Hindi", "Hmong", "Hungarian",
-    "Icelandic", "Igbo", "Indonesian", "Irish", "Italian",
-    "Japanese", "Javanese",
-    "Kannada", "Kazakh", "Khmer", "Korean", "Kurdish", "Kyrgyz",
-    "Lao", "Latin", "Latvian", "Lithuanian", "Luxembourgish",
-    "Macedonian", "Malagasy", "Malay", "Malayalam", "Maltese", "Maori", "Marathi", "Mongolian",
-    "Nepali", "Norwegian",
-    "Pashto", "Persian", "Polish", "Portuguese", "Punjabi",
-    "Romanian", "Russian",
-    "Samoan", "Scots Gaelic", "Serbian", "Sesotho", "Shona", "Sindhi", "Sinhala", "Slovak", "Slovenian", "Somali", "Spanish", "Sundanese", "Swahili", "Swedish",
-    "Tagalog", "Tajik", "Tamil", "Telugu", "Thai", "Turkish",
-    "Ukrainian", "Urdu", "Uzbek",
-    "Vietnamese",
-    "Welsh",
-    "Xhosa",
-    "Yiddish", "Yoruba",
-    "Zulu"
-  ];
 
   // Extract available languages from employees and language options
   useMemo(() => {
@@ -208,12 +183,12 @@ export function EmployeesContent() {
     if (!languageSearch) return [];
     
     // Combine employee languages with all possible languages
-    const allLanguages = new Set([...availableLanguages, ...allPossibleLanguages]);
+    const allLanguages = new Set([...availableLanguages, ...ALL_LANGUAGES]);
     
     return Array.from(allLanguages)
       .filter(lang => lang.toLowerCase().includes(languageSearch.toLowerCase()))
       .sort();
-  }, [availableLanguages, languageSearch, allPossibleLanguages]);
+  }, [availableLanguages, languageSearch]);
 
   // Helper function to format last login timestamp
   const formatLastLogin = (lastLogin: string | null | undefined) => {
