@@ -14,16 +14,22 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+  console.log('[MainLayout] Component rendering');
   const { theme, setTheme } = useTheme();
   const { preferences, loading } = useUserPreferences();
   
+  console.log('[MainLayout] preferences:', preferences, 'loading:', loading);
+  
   if (loading) {
+    console.log('[MainLayout] Still loading preferences...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
       </div>
     );
   }
+  
+  console.log('[MainLayout] Rendering content with style:', preferences.navigationStyle);
 
   // Floating Navigation Layout
   if (preferences.navigationStyle === "floating") {
