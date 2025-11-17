@@ -60,7 +60,12 @@ async function fetchEmployees(): Promise<Employee[]> {
     .order('name');
 
   if (error) throw error;
-  return data || [];
+  
+  // Transform the data to ensure languages is properly typed as string[]
+  return (data || []).map(emp => ({
+    ...emp,
+    languages: Array.isArray(emp.languages) ? emp.languages : []
+  })) as Employee[];
 }
 
 // Fetch branches
