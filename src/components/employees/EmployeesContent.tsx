@@ -1,6 +1,7 @@
 
-import { useState, useRef } from "react";
-import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Key, CalendarIcon, Activity } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { Plus, Search, Filter, Mail, Phone, MapPin, Calendar, Users, Building, Clock, User, Upload, Download, X, FileSpreadsheet, AlertCircle, Eye, Edit3, Trash2, Check, Square, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, Key, CalendarIcon, Activity, Languages } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useLanguageOptions } from "@/hooks/queries/useLanguageQueries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,10 @@ export function EmployeesContent() {
   const { canViewEmployees, canCreateEmployees, canEditEmployees, canDeleteEmployees } = usePagePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [languageSearch, setLanguageSearch] = useState("");
+  const [isLanguagePopoverOpen, setIsLanguagePopoverOpen] = useState(false);
   const [sortField, setSortField] = useState<EmployeeSortField>('name');
   const [sortDirection, setSortDirection] = useState<EmployeeSortDirection>('asc');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -146,6 +151,35 @@ export function EmployeesContent() {
   const [pageSize, setPageSize] = useState(50);
   const { toast } = useToast();
 
+  // Comprehensive list of common languages
+  const allPossibleLanguages = [
+    "Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Assamese", "Azerbaijani",
+    "Basque", "Belarusian", "Bengali", "Bosnian", "Bulgarian", "Burmese",
+    "Catalan", "Cebuano", "Chinese", "Corsican", "Croatian", "Czech",
+    "Danish", "Dutch",
+    "English", "Esperanto", "Estonian",
+    "Filipino", "Finnish", "French", "Frisian",
+    "Galician", "Georgian", "German", "Greek", "Gujarati",
+    "Haitian Creole", "Hausa", "Hawaiian", "Hebrew", "Hindi", "Hmong", "Hungarian",
+    "Icelandic", "Igbo", "Indonesian", "Irish", "Italian",
+    "Japanese", "Javanese",
+    "Kannada", "Kazakh", "Khmer", "Korean", "Kurdish", "Kyrgyz",
+    "Lao", "Latin", "Latvian", "Lithuanian", "Luxembourgish",
+    "Macedonian", "Malagasy", "Malay", "Malayalam", "Maltese", "Mandarin", "Maori", "Marathi", "Mongolian",
+    "Nepali", "Norwegian",
+    "Odia", "Pashto", "Persian", "Polish", "Portuguese", "Punjabi",
+    "Romanian", "Russian",
+    "Samoan", "Scots Gaelic", "Serbian", "Sesotho", "Shona", "Sindhi", "Sinhala", "Slovak", "Slovenian", 
+    "Somali", "Spanish", "Sundanese", "Swahili", "Swedish",
+    "Tagalog", "Tajik", "Tamil", "Tatar", "Telugu", "Thai", "Turkish", "Turkmen",
+    "Ukrainian", "Urdu", "Uyghur", "Uzbek",
+    "Vietnamese",
+    "Welsh",
+    "Xhosa",
+    "Yiddish", "Yoruba",
+    "Zulu"
+  ];
+
   // Helper function to format last login timestamp
   const formatLastLogin = (lastLogin: string | null | undefined) => {
     if (!lastLogin) return "Never logged in";
@@ -205,6 +239,32 @@ export function EmployeesContent() {
 
   // Remove old useEffect and fetchData - now handled by React Query
   // const fetchData = async () => { ... } // REMOVED - using React Query hooks
+
+  // Extract available languages from employees
+  useEffect(() => {
+    const languagesSet = new Set<string>();
+    employees.forEach(employee => {
+      if (employee.languages && Array.isArray(employee.languages)) {
+        employee.languages.forEach(lang => {
+          if (lang && typeof lang === 'string') {
+            languagesSet.add(lang.trim());
+          }
+        });
+      }
+    });
+    setAvailableLanguages(Array.from(languagesSet).sort());
+  }, [employees]);
+
+  // Memoize filtered languages based on search
+  const filteredLanguages = useMemo(() => {
+    if (!languageSearch) return [];
+    
+    const allLanguages = new Set([...availableLanguages, ...allPossibleLanguages]);
+    
+    return Array.from(allLanguages)
+      .filter(lang => lang.toLowerCase().includes(languageSearch.toLowerCase()))
+      .sort();
+  }, [availableLanguages, languageSearch, allPossibleLanguages]);
 
   // Email validation helper functions
   const checkEmailExists = async (email: string, excludeEmployeeId?: string): Promise<{ exists: boolean; existingEmployee?: Employee }> => {
@@ -1167,6 +1227,16 @@ export function EmployeesContent() {
     
     const matchesBranch = branchFilter === 'all' || employee.branches?.name === branchFilter;
     
+    // Add language filter
+    const matchesLanguage = selectedLanguages.length === 0 || (
+      employee.languages && Array.isArray(employee.languages) &&
+      selectedLanguages.some(selectedLang => 
+        employee.languages.some((empLang: string) => 
+          empLang.toLowerCase().includes(selectedLang.toLowerCase())
+        )
+      )
+    );
+    
     // For non-admin users, filter by accessible branches
     const accessibleBranches = getAccessibleBranches();
     
@@ -1176,7 +1246,7 @@ export function EmployeesContent() {
       hasAccess = accessibleBranches.includes(employee.branch_id || '');
     }
     
-    return matchesSearch && matchesBranch && hasAccess;
+    return matchesSearch && matchesBranch && matchesLanguage && hasAccess;
   }).sort((a, b) => {
     let aVal: any;
     let bVal: any;
@@ -1339,7 +1409,123 @@ export function EmployeesContent() {
             ))}
           </SelectContent>
         </Select>
+        
+        {/* Language Filter */}
+        <Popover 
+          open={isLanguagePopoverOpen} 
+          onOpenChange={(open) => {
+            setIsLanguagePopoverOpen(open);
+            if (!open) setLanguageSearch("");
+          }}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              className="w-full sm:w-auto sm:min-w-[200px] justify-between"
+              onClick={() => setIsLanguagePopoverOpen(true)}
+            >
+              <Languages className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {selectedLanguages.length > 0
+                  ? `${selectedLanguages.length} selected`
+                  : "Search languages..."}
+              </span>
+              <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[250px] p-0" align="start">
+            <Command shouldFilter={false}>
+              <CommandInput 
+                placeholder="Type to search languages..." 
+                value={languageSearch}
+                onValueChange={setLanguageSearch}
+              />
+              <CommandList>
+                {languageSearch.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    Start typing to search languages...
+                  </div>
+                ) : filteredLanguages.length === 0 ? (
+                  <CommandEmpty>No languages found.</CommandEmpty>
+                ) : (
+                  <CommandGroup>
+                    {filteredLanguages.map((language) => {
+                      const count = employees.filter(emp => {
+                        const langs = emp.languages || [];
+                        return Array.isArray(langs) && langs.includes(language);
+                      }).length;
+                      const isSelected = selectedLanguages.includes(language);
+
+                      return (
+                        <CommandItem
+                          key={language}
+                          value={language}
+                          onSelect={() => {
+                            setPage(1);
+                            if (isSelected) {
+                              setSelectedLanguages(selectedLanguages.filter(l => l !== language));
+                            } else {
+                              setSelectedLanguages([...selectedLanguages, language]);
+                            }
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="flex-1">{language}</span>
+                          <Badge variant="secondary" className="ml-2">
+                            {count}
+                          </Badge>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                )}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* Selected Languages Display */}
+      {selectedLanguages.length > 0 && (
+        <div className="flex flex-wrap gap-2 items-center animate-slide-up">
+          <span className="text-sm text-muted-foreground">Filtering by:</span>
+          {selectedLanguages.map(lang => (
+            <Badge 
+              key={lang} 
+              variant="secondary" 
+              className="gap-1 pr-1 pl-2.5"
+            >
+              {lang}
+              <button
+                onClick={() => {
+                  setPage(1);
+                  setSelectedLanguages(prev => prev.filter(l => l !== lang));
+                }}
+                className="hover:bg-background/50 rounded-full p-0.5 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setPage(1);
+              setSelectedLanguages([]);
+            }}
+            className="h-6 text-xs"
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-slide-up">
@@ -1414,7 +1600,7 @@ export function EmployeesContent() {
               <Users className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-semibold mb-2">No employees found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || branchFilter !== 'all' 
+                {searchTerm || branchFilter !== 'all' || selectedLanguages.length > 0
                   ? "Try adjusting your search or filter criteria." 
                   : "Get started by adding an employee."
                 }
