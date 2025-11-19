@@ -36,6 +36,7 @@ import DocumentSigningView from "./pages/DocumentSigningView";
 import EmployeeDocumentSigningView from "./pages/EmployeeDocumentSigningView";
 import Reference from "./pages/Reference";
 import EmployeeCareWorkerStatements from "./pages/EmployeeCareWorkerStatements";
+import DocumentUpload from "./pages/DocumentUpload";
 import NotFound from "./pages/NotFound";
 
 
@@ -66,6 +67,7 @@ function AppContent() {
       <Route path="/" element={<PublicHome />} />
       <Route path="/login" element={<UnifiedAuth />} />
       <Route path="/job-application" element={<JobApplication />} />
+      <Route path="/document-upload" element={<DocumentUpload />} />
       <Route path="/reference" element={<Reference />} />
       <Route path="/sign/:token" element={<DocumentSigningView />} />
       <Route path="/employee-sign/:token" element={
