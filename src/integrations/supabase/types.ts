@@ -1219,6 +1219,56 @@ export type Database = {
         }
         Relationships: []
       }
+      document_upload_tokens: {
+        Row: {
+          applicant_email: string
+          applicant_name: string
+          application_id: string | null
+          created_at: string | null
+          documents_uploaded: Json | null
+          expires_at: string
+          id: string
+          required_documents: Json | null
+          token: string
+          updated_at: string | null
+          used_at: string | null
+        }
+        Insert: {
+          applicant_email: string
+          applicant_name: string
+          application_id?: string | null
+          created_at?: string | null
+          documents_uploaded?: Json | null
+          expires_at?: string
+          id?: string
+          required_documents?: Json | null
+          token: string
+          updated_at?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          applicant_email?: string
+          applicant_name?: string
+          application_id?: string | null
+          created_at?: string | null
+          documents_uploaded?: Json | null
+          expires_at?: string
+          id?: string
+          required_documents?: Json | null
+          token?: string
+          updated_at?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_upload_tokens_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           branch_id: string | null

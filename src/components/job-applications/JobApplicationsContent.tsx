@@ -29,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { EditApplicationDialog } from "./EditApplicationDialog";
+import { RequestDocumentsDialog } from "./RequestDocumentsDialog";
 // Helper function to format dates from YYYY-MM-DD to MM/DD/YYYY
 const formatDateDisplay = (dateString: string | null | undefined): string => {
   if (!dateString) return 'Not provided';
@@ -994,6 +995,24 @@ function ApplicationDetails({
             references={toJobAppData().references}
             onUpdate={onUpdate}
           />
+        </CardContent>
+      </Card>
+
+      {/* Document Upload Request */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Document Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Request documents from the applicant using our secure upload portal with camera scanning.
+            </p>
+            <RequestDocumentsDialog 
+              application={application}
+              onSuccess={onUpdate}
+            />
+          </div>
         </CardContent>
       </Card>
 
