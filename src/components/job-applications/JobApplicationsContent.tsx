@@ -30,6 +30,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { EditApplicationDialog } from "./EditApplicationDialog";
 import { RequestDocumentsDialog } from "./RequestDocumentsDialog";
+import { UploadedDocumentsView } from "./UploadedDocumentsView";
 // Helper function to format dates from YYYY-MM-DD to MM/DD/YYYY
 const formatDateDisplay = (dateString: string | null | undefined): string => {
   if (!dateString) return 'Not provided';
@@ -1015,6 +1016,9 @@ function ApplicationDetails({
           </div>
         </CardContent>
       </Card>
+
+      {/* Uploaded Documents Section */}
+      <UploadedDocumentsView applicationId={application.id} />
 
       {/* Edit Dialog */}
       <EditApplicationDialog
