@@ -55,7 +55,7 @@ export function DocumentCaptureCamera({ onCapture, onCancel }: DocumentCaptureCa
   return (
     <Card className="p-6">
       <div className="space-y-4">
-        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+        <div className="relative min-h-[70vh] bg-muted rounded-lg overflow-hidden">
           {!capturedImage ? (
             <>
               <Webcam
