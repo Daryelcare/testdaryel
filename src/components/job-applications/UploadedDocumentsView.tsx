@@ -91,10 +91,18 @@ export function UploadedDocumentsView({ applicationId }: UploadedDocumentsViewPr
       let uploadedDocs: UploadedDocument[] = [];
       if (tokenData.documents_uploaded && Array.isArray(tokenData.documents_uploaded)) {
         uploadedDocs = tokenData.documents_uploaded.map((doc: any) => ({
-          id: doc.id || '',
+          id: doc.id || crypto.randomUUID(),
           type: doc.type || '',
-          uploadedUrl: doc.uploadedUrl || '',
-          uploadedAt: doc.uploadedAt,
+          uploadedUrl: doc.url || '',
+          uploadedAt: doc.uploaded_at,
+        }));
+        
+        // Construct full public URLs from storage paths
+        uploadedDocs = uploadedDocs.map(doc => ({
+          ...doc,
+          uploadedUrl: supabase.storage
+            .from('applicant-documents')
+            .getPublicUrl(doc.uploadedUrl).data.publicUrl
         }));
       }
       setDocuments(uploadedDocs);
@@ -146,24 +154,9 @@ export function UploadedDocumentsView({ applicationId }: UploadedDocumentsViewPr
 
   const downloadDocument = async (doc: UploadedDocument) => {
     try {
-      // Extract path from the URL
-      const url = new URL(doc.uploadedUrl);
-      const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/applicant-documents\/(.+)$/);
+      const response = await fetch(doc.uploadedUrl);
+      const blob = await response.blob();
       
-      if (!pathMatch) {
-        throw new Error('Invalid document URL');
-      }
-
-      const filePath = pathMatch[1];
-      
-      const { data, error } = await supabase.storage
-        .from('applicant-documents')
-        .download(filePath);
-
-      if (error) throw error;
-
-      // Create download link
-      const blob = new Blob([data]);
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
