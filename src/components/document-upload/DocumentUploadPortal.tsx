@@ -121,25 +121,46 @@ export function DocumentUploadPortal({
     try {
       // Upload each document
       for (const doc of documents) {
-        // Convert base64 to blob
-        const response = await fetch(doc.imageData);
-        const blob = await response.blob();
-        
-        const fileName = `${Date.now()}_${doc.type.replace(/\s+/g, '_')}.jpg`;
-        const filePath = `${token}/${doc.type}/${fileName}`;
+        try {
+          // Convert base64 to blob
+          const response = await fetch(doc.imageData);
+          if (!response.ok) {
+            throw new Error(`Failed to process image: ${response.statusText}`);
+          }
+          
+          const blob = await response.blob();
+          
+          if (blob.size === 0) {
+            throw new Error('Image data is empty');
+          }
+          
+          const fileName = `${Date.now()}_${doc.type.replace(/\s+/g, '_')}.jpg`;
+          const filePath = `${token}/${doc.type}/${fileName}`;
 
-        // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from('applicant-documents')
-          .upload(filePath, blob, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
+          console.log('Uploading document:', { fileName, filePath, size: blob.size });
 
-        if (uploadError) throw uploadError;
+          // Upload to Supabase Storage
+          const { error: uploadError, data } = await supabase.storage
+            .from('applicant-documents')
+            .upload(filePath, blob, {
+              contentType: blob.type || 'image/jpeg',
+              upsert: false
+            });
 
-        doc.uploadedUrl = filePath;
+          if (uploadError) {
+            console.error('Storage upload error:', uploadError);
+            throw new Error(`Storage error: ${uploadError.message}`);
+          }
+
+          console.log('Upload successful:', data);
+          doc.uploadedUrl = filePath;
+        } catch (docError) {
+          console.error(`Error uploading ${doc.type}:`, docError);
+          throw docError;
+        }
       }
+
+      console.log('All documents uploaded, updating token...');
 
       // Update token with uploaded documents
       const { error: updateError } = await supabase
@@ -154,7 +175,12 @@ export function DocumentUploadPortal({
         })
         .eq('token', token);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Token update error:', updateError);
+        throw new Error(`Database error: ${updateError.message}`);
+      }
+
+      console.log('Token updated successfully');
 
       toast({
         title: 'Success!',
@@ -163,10 +189,12 @@ export function DocumentUploadPortal({
 
       onComplete();
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Upload error details:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
       toast({
         title: 'Upload Failed',
-        description: 'There was an error uploading your documents. Please try again.',
+        description: `Error: ${errorMessage}. Please try again.`,
         variant: 'destructive'
       });
     } finally {
