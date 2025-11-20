@@ -4,7 +4,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
-const handler = async (req)=>{
+const handler = async (req: Request): Promise<Response> =>{
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -26,8 +26,8 @@ const handler = async (req)=>{
       });
     }
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     // Get reference request by token
     const { data, error } = await supabase.from('reference_requests').select('*').eq('reference_token', token).single();
@@ -82,7 +82,7 @@ const handler = async (req)=>{
         ...corsHeaders
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in get-reference-request function:", error);
     return new Response(JSON.stringify({
       error: error.message

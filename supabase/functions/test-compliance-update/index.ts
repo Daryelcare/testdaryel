@@ -23,8 +23,8 @@ serve(async (req)=>{
         status: 400
       });
     }
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     console.log(`Updating compliance statuses for test date: ${test_date}`);
     // Update employee compliance statuses
@@ -56,7 +56,7 @@ serve(async (req)=>{
       },
       status: 200
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error:', error);
     return new Response(JSON.stringify({
       error: error.message

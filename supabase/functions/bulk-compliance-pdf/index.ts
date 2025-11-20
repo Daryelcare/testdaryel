@@ -69,8 +69,9 @@ serve(async (req)=>{
     const zipEntries = [];
     // Process each branch
     for (const [branchName, branchRecords] of Object.entries(recordsByBranch)){
-      console.log(`Processing branch: ${branchName} with ${branchRecords.length} records`);
-      for (const record of branchRecords){
+      const typedRecords = branchRecords as any[];
+      console.log(`Processing branch: ${branchName} with ${typedRecords.length} records`);
+      for (const record of typedRecords){
         try {
           let pdfBytes;
           // Determine PDF generation method based on completion_method
@@ -88,7 +89,7 @@ serve(async (req)=>{
             name: fullPath,
             content: pdfBytes
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error generating PDF for record ${record.id}:`, error);
         // Continue with other records
         }
@@ -106,7 +107,7 @@ serve(async (req)=>{
         'Content-Disposition': `attachment; filename="${zipFileName}"`
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in bulk-compliance-pdf function:', error);
     return new Response(JSON.stringify({
       error: error.message
@@ -119,7 +120,7 @@ serve(async (req)=>{
     });
   }
 });
-async function generateQuestionnairePdf(record, company, supabaseClient) {
+async function generateQuestionnairePdf(record: any, company: any, supabaseClient: any) {
   // Fetch questionnaire responses
   const { data: responses } = await supabaseClient.from('compliance_questionnaire_responses').select(`
       *,
@@ -147,7 +148,7 @@ async function generateQuestionnairePdf(record, company, supabaseClient) {
   const lineHeight = 16;
   let y = page.getHeight() - margin;
   // Helper functions
-  const drawText = (text, opts)=>{
+  const drawText = (text: string, opts: any = {})=>{
     const f = opts?.bold ? boldFont : font;
     const size = opts?.size ?? 11;
     page.drawText(text || '', {
@@ -187,7 +188,7 @@ async function generateQuestionnairePdf(record, company, supabaseClient) {
       size: 12
     });
     addSpacer(5);
-    responses.responses.forEach((response)=>{
+    responses.responses.forEach((response: any)=>{
       let responseValue = '';
       if (response.response_value) {
         try {
@@ -211,7 +212,7 @@ async function generateQuestionnairePdf(record, company, supabaseClient) {
   }
   return await doc.save();
 }
-async function generateBasicCompliancePdf(record, company) {
+async function generateBasicCompliancePdf(record: any, company: any) {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   // Load fonts
@@ -231,7 +232,7 @@ async function generateBasicCompliancePdf(record, company) {
   const margin = 40;
   const lineHeight = 16;
   let y = page.getHeight() - margin;
-  const drawText = (text, opts)=>{
+  const drawText = (text: string, opts: any = {})=>{
     const f = opts?.bold ? boldFont : font;
     const size = opts?.size ?? 11;
     page.drawText(text || '', {
@@ -269,16 +270,16 @@ async function generateBasicCompliancePdf(record, company) {
   }
   return await doc.save();
 }
-async function createZipFile(entries) {
+async function createZipFile(entries: any[]) {
   // Simple ZIP file creation
   // This is a basic implementation - for production, consider using a proper ZIP library
-  const files = entries.map((entry)=>({
+  const files = entries.map((entry: any)=>({
       name: entry.name,
       data: entry.content
     }));
   // Create a simple ZIP-like structure
   let totalSize = 0;
-  const fileHeaders = files.map((file)=>{
+  const fileHeaders = files.map((file: any)=>{
     const header = new TextEncoder().encode(`${file.name}\n`);
     totalSize += header.length + file.data.length + 4; // 4 bytes for length prefix
     return {
